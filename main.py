@@ -1,26 +1,17 @@
-from fastapi import FastAPI
-# Pydantic models to define and validate that data.
-from pydantic import BaseModel
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from app.routers import tasks
 
 app = FastAPI()
 
-class Task(BaseModel):
-    title: str
-    description: str
-    completed: bool = False
+# --- Custom Exception ---
+class TaskException(Exception):
+    def __init__(self, message: str):
+        self.message = message
 
-@app.get('/tasks')
-def get_all_tasks():
-    return {"tasks": []}
+@app.exception_handler(TaskException)
+def task_exception_handler(request: Request, exc: TaskException):
+    return JSONResponse(status_code=400, content={"error": exc.message})
 
-@app.get('/tasks/{task_id}')
-def get_task_by_id(task_id: int):
-    return {"task_id" : task_id}
-
-@app.get("/tasks")
-def get_tasks(completed: bool = False):
-    return {"completed": completed}
-
-@app.post("/tasks")
-def create_task(task: Task):
-    return task
+# --- Register Routers ---
+app.include_router(tasks.router)
